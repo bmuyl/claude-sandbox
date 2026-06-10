@@ -11,40 +11,38 @@
 
 set -euo pipefail
 
+IMAGE="claude-sandbox"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+build_if_needed() {
+  if ! docker image inspect "$IMAGE" &>/dev/null; then
+    echo "🔨  Building $IMAGE (first run, takes ~5 min)…"
+    docker build -t "$IMAGE" "$SCRIPT_DIR"
+  fi
+}
+
+# ── Normal run ──────────────────────────────────────────────────────────────────
 PROJECT="${1:-$(pwd)}"
 PROMPT="${2:-}"
-
-# Resolve to absolute path
 PROJECT="$(cd "$PROJECT" && pwd)"
 
-IMAGE="claude-sandbox"
+build_if_needed
 
-# Build image if it doesn't exist yet
-if ! docker image inspect "$IMAGE" &>/dev/null; then
-  echo "🔨  Building $IMAGE (first run, takes ~5 min)…"
-  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-  docker build -t "$IMAGE" "$SCRIPT_DIR"
-fi
+DOCKER_ARGS=(--rm -v "$PROJECT:/workspace" -w /workspace)
 
-# Mount credentials to /tmp/claude-auth/ so the entrypoint can copy them
-# with correct ownership — direct home mounts hit permission issues (file is 600)
-DOCKER_ARGS=(
-  --rm
-  -v "$PROJECT:/workspace"
-  -w /workspace
-)
+# Extract the OAuth token from macOS Keychain at runtime — always uses the
+# current token, which the Mac Claude Code app keeps refreshed automatically.
+OAUTH_TOKEN=$(security find-generic-password -s "Claude Code-credentials" -w 2>/dev/null \
+  | python3 -c "import sys,json; d=json.loads(sys.stdin.read()); print(d['claudeAiOauth']['accessToken'])" 2>/dev/null || true)
 
-if [ -f "$HOME/.claude.json" ]; then
-  DOCKER_ARGS+=(-v "$HOME/.claude.json:/tmp/claude-auth/claude.json")
-fi
-
-if [ -d "$HOME/.claude" ]; then
-  DOCKER_ARGS+=(-v "$HOME/.claude:/tmp/claude-auth/claude-dir:ro")
-fi
-
-# API key takes precedence over mounted credentials if set
-if [ -n "${ANTHROPIC_API_KEY:-}" ]; then
+if [ -n "${OAUTH_TOKEN:-}" ]; then
+  DOCKER_ARGS+=(-e "CLAUDE_CODE_OAUTH_TOKEN=$OAUTH_TOKEN")
+  echo "🔑  Auth: using Mac Keychain token (Max subscription)"
+elif [ -n "${ANTHROPIC_API_KEY:-}" ]; then
   DOCKER_ARGS+=(-e ANTHROPIC_API_KEY)
+  echo "🔑  Auth: using ANTHROPIC_API_KEY"
+else
+  echo "⚠️  No auth found. Make sure Claude Code is running on your Mac, or set ANTHROPIC_API_KEY."
 fi
 
 if [ -n "$PROMPT" ]; then
