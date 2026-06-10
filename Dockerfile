@@ -51,7 +51,14 @@ RUN git config --system user.email "claude-sandbox@local" \
 
 # ── Non-root user (Claude Code refuses --dangerously-skip-permissions as root) ─
 RUN useradd -m -s /bin/bash claude
+
+# ── Entrypoint: copies host credentials with correct permissions ───────────────
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
 USER claude
 ENV HOME=/home/claude
 
 WORKDIR /workspace
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+CMD ["claude", "--dangerously-skip-permissions"]

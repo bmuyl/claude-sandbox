@@ -26,17 +26,20 @@ if ! docker image inspect "$IMAGE" &>/dev/null; then
   docker build -t "$IMAGE" "$SCRIPT_DIR"
 fi
 
+# Mount credentials to /tmp/claude-auth/ so the entrypoint can copy them
+# with correct ownership — direct home mounts hit permission issues (file is 600)
 DOCKER_ARGS=(
   --rm
   -v "$PROJECT:/workspace"
-  -v "$HOME/.claude:/home/claude/.claude:ro"
-  -e HOME=/home/claude
   -w /workspace
 )
 
-# Mount .claude.json if it exists (auth credentials)
 if [ -f "$HOME/.claude.json" ]; then
-  DOCKER_ARGS+=(-v "$HOME/.claude.json:/home/claude/.claude.json:ro")
+  DOCKER_ARGS+=(-v "$HOME/.claude.json:/tmp/claude-auth/claude.json:ro")
+fi
+
+if [ -d "$HOME/.claude" ]; then
+  DOCKER_ARGS+=(-v "$HOME/.claude:/tmp/claude-auth/claude-dir:ro")
 fi
 
 # API key takes precedence over mounted credentials if set
@@ -45,15 +48,9 @@ if [ -n "${ANTHROPIC_API_KEY:-}" ]; then
 fi
 
 if [ -n "$PROMPT" ]; then
-  # Headless one-shot
   echo "🤖  Running headless in $PROJECT"
-  docker run "${DOCKER_ARGS[@]}" \
-    "$IMAGE" \
-    claude --dangerously-skip-permissions -p "$PROMPT"
+  docker run "${DOCKER_ARGS[@]}" "$IMAGE" claude --dangerously-skip-permissions -p "$PROMPT"
 else
-  # Interactive session
   echo "🤖  Starting interactive session in $PROJECT"
-  docker run -it "${DOCKER_ARGS[@]}" \
-    "$IMAGE" \
-    claude --dangerously-skip-permissions
+  docker run -it "${DOCKER_ARGS[@]}" "$IMAGE" claude --dangerously-skip-permissions
 fi
