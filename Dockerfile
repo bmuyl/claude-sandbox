@@ -50,7 +50,7 @@ RUN git config --system user.email "claude-sandbox@local" \
     && git config --system user.name "claude-sandbox"
 
 # ── Non-root user (Claude Code refuses --dangerously-skip-permissions as root) ─
-RUN useradd -m -s /bin/bash -u 1000 claude
+RUN useradd -m -s /bin/bash claude
 USER claude
 ENV HOME=/home/claude
 
