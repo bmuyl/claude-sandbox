@@ -54,8 +54,8 @@ fi
 
 if [ -n "$PROMPT" ]; then
   echo "🤖  Running headless in $PROJECT"
-  docker run "${DOCKER_ARGS[@]}" "$IMAGE" claude --dangerously-skip-permissions -p "$PROMPT"
+  docker run "${DOCKER_ARGS[@]}" "$IMAGE" claude --dangerously-skip-permissions --model opus --effort high -p "$PROMPT"
 else
   echo "🤖  Starting interactive session in $PROJECT"
-  docker run -it "${DOCKER_ARGS[@]}" "$IMAGE" claude --dangerously-skip-permissions
+  docker run -it "${DOCKER_ARGS[@]}" "$IMAGE" claude --dangerously-skip-permissions --model opus --effort high
 fi
