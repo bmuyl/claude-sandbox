@@ -37,13 +37,16 @@ if [ -f "$HOME/.claude.json" ]; then
   DOCKER_ARGS+=(-v "$HOME/.claude.json:/tmp/claude-auth/claude.json:ro")
 fi
 
-# Extract the OAuth token from macOS Keychain at runtime — always uses the
-# current token, which the Mac Claude Code app keeps refreshed automatically.
-OAUTH_TOKEN=$(security find-generic-password -s "Claude Code-credentials" -w 2>/dev/null \
-  | python3 -c "import sys,json; d=json.loads(sys.stdin.read()); print(d['claudeAiOauth']['accessToken'])" 2>/dev/null || true)
+# Extract OAuth tokens from macOS Keychain at runtime.
+# Pass both access + refresh tokens so the container can renew on its own
+# when the access token expires (it only lasts ~8 hours).
+_CREDS=$(security find-generic-password -s "Claude Code-credentials" -w 2>/dev/null || true)
+OAUTH_TOKEN=$(echo "$_CREDS" | python3 -c "import sys,json; d=json.loads(sys.stdin.read()); print(d['claudeAiOauth']['accessToken'])" 2>/dev/null || true)
+REFRESH_TOKEN=$(echo "$_CREDS" | python3 -c "import sys,json; d=json.loads(sys.stdin.read()); print(d['claudeAiOauth']['refreshToken'])" 2>/dev/null || true)
 
 if [ -n "${OAUTH_TOKEN:-}" ]; then
   DOCKER_ARGS+=(-e "CLAUDE_CODE_OAUTH_TOKEN=$OAUTH_TOKEN")
+  [ -n "${REFRESH_TOKEN:-}" ] && DOCKER_ARGS+=(-e "CLAUDE_CODE_OAUTH_REFRESH_TOKEN=$REFRESH_TOKEN")
   echo "🔑  Auth: using Mac Keychain token (Max subscription)"
 elif [ -n "${ANTHROPIC_API_KEY:-}" ]; then
   DOCKER_ARGS+=(-e ANTHROPIC_API_KEY)
