@@ -30,6 +30,13 @@ build_if_needed
 
 DOCKER_ARGS=(--rm -v "$PROJECT:/workspace" -w /workspace)
 
+# Mount Mac's ~/.claude.json so the TUI has account metadata (display name,
+# subscription info) and skips the first-run login screen.
+# The actual auth token comes from the Keychain env var below.
+if [ -f "$HOME/.claude.json" ]; then
+  DOCKER_ARGS+=(-v "$HOME/.claude.json:/tmp/claude-auth/claude.json:ro")
+fi
+
 # Extract the OAuth token from macOS Keychain at runtime — always uses the
 # current token, which the Mac Claude Code app keeps refreshed automatically.
 OAUTH_TOKEN=$(security find-generic-password -s "Claude Code-credentials" -w 2>/dev/null \
