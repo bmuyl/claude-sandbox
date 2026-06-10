@@ -35,7 +35,7 @@ DOCKER_ARGS=(
 )
 
 if [ -f "$HOME/.claude.json" ]; then
-  DOCKER_ARGS+=(-v "$HOME/.claude.json:/tmp/claude-auth/claude.json:ro")
+  DOCKER_ARGS+=(-v "$HOME/.claude.json:/tmp/claude-auth/claude.json")
 fi
 
 if [ -d "$HOME/.claude" ]; then

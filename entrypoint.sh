@@ -13,3 +13,8 @@ if [ -d /tmp/claude-auth/claude-dir ]; then
 fi
 
 exec "$@"
+
+# After claude exits, write back any refreshed credentials to the host mount
+if [ -f "$HOME/.claude.json" ] && [ -d /tmp/claude-auth ]; then
+  cp "$HOME/.claude.json" /tmp/claude-auth/claude.json
+fi
