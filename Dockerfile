@@ -49,8 +49,17 @@ RUN npm install -g @anthropic-ai/claude-code
 RUN git config --system user.email "claude-sandbox@local" \
     && git config --system user.name "claude-sandbox"
 
+# ── Playwright system dependencies (needed before USER switch) ─────────────────
+RUN npx -y playwright install-deps chromium
+
 # ── Non-root user (Claude Code refuses --dangerously-skip-permissions as root) ─
 RUN useradd -m -s /bin/bash claude
+
+# Passwordless sudo for apt-get so Claude can install system packages
+RUN apt-get install -y sudo \
+    && echo "claude ALL=(ALL) NOPASSWD: /usr/bin/apt-get, /usr/bin/apt" \
+       >> /etc/sudoers.d/claude-sandbox \
+    && chmod 440 /etc/sudoers.d/claude-sandbox
 
 # ── Entrypoint: copies host credentials with correct permissions ───────────────
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
@@ -63,6 +72,13 @@ ENV PATH="/home/claude/.claude/local:${PATH}"
 
 # Switch to the native installer so auto-updates work without sudo
 RUN claude install
+
+# Install Playwright Chromium browser for the claude user
+RUN npx -y playwright install chromium
+
+# Global Claude Code settings: Playwright MCP for browser access
+RUN mkdir -p /home/claude/.claude
+COPY --chown=claude:claude container-settings.json /home/claude/.claude/settings.json
 
 WORKDIR /workspace
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
