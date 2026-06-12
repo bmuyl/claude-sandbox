@@ -80,6 +80,9 @@ RUN npx -y playwright install chromium
 RUN mkdir -p /home/claude/.claude
 COPY --chown=claude:claude container-settings.json /home/claude/.claude/settings.json
 
+# Sandbox context doc: tells Claude what env it's in, what tools are available
+COPY --chown=claude:claude sandbox-CLAUDE.md /home/claude/CLAUDE.md
+
 WORKDIR /workspace
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["claude", "--dangerously-skip-permissions"]
