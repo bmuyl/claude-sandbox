@@ -29,6 +29,10 @@ You are running inside an isolated Docker container (Linux ARM64) on an Apple Si
 The `playwright` MCP server is configured and provides a full headless Chromium browser.
 Use it for web scraping, form filling, screenshots, and any JS-rendered pages.
 
+**Preview MCP is not available** (`preview_*` tools don't exist here — those are a
+Claude Code desktop feature). Use Playwright for any UI verification tasks instead.
+Start the dev server with a `Bash` tool, then use playwright to screenshot or interact.
+
 ## Secrets
 
 Environment variables from the host's `~/.config/claude-sandbox/env` are loaded automatically.
