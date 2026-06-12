@@ -64,15 +64,16 @@ RUN chmod +x /usr/local/bin/entrypoint.sh
 
 USER claude
 ENV HOME=/home/claude
-# npm prefix owned by claude → auto-updates land somewhere writable
-ENV NPM_CONFIG_PREFIX=/home/claude/.npm-global
-ENV PATH="/home/claude/.claude/local:/home/claude/.npm-global/bin:${PATH}"
+ENV PATH="/home/claude/.claude/local:${PATH}"
 
-# Install claude-code into user-owned prefix (writable for auto-updates)
-RUN npm install -g @anthropic-ai/claude-code
-
-# Install native binary (self-contained, faster startup, no npm dependency at runtime)
-RUN claude install
+# Bootstrap: use a temp npm prefix to install the npm package once, run
+# `claude install` to get the self-contained native binary at ~/.claude/local/,
+# then remove the npm copy.  The native binary self-updates in ~/.claude/local/
+# (user-owned) so there's no "no write permission to npm prefix" warning.
+RUN export NPM_CONFIG_PREFIX=/home/claude/.npm-tmp \
+    && npm install -g @anthropic-ai/claude-code \
+    && /home/claude/.npm-tmp/bin/claude install \
+    && rm -rf /home/claude/.npm-tmp
 
 # Install Playwright Chromium browser for the claude user
 RUN npx -y playwright install chromium
