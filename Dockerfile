@@ -58,6 +58,11 @@ RUN chmod +x /usr/local/bin/entrypoint.sh
 
 USER claude
 ENV HOME=/home/claude
+# Add native-install location to PATH so auto-updates take effect
+ENV PATH="/home/claude/.claude/local:${PATH}"
+
+# Switch to the native installer so auto-updates work without sudo
+RUN claude install
 
 WORKDIR /workspace
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
