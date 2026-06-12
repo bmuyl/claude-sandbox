@@ -42,9 +42,6 @@ ENV RUSTUP_HOME=/usr/local/rustup
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path
 ENV PATH="/usr/local/cargo/bin:$PATH"
 
-# ── Claude Code (system-wide) ─────────────────────────────────────────────────
-RUN npm install -g @anthropic-ai/claude-code
-
 # ── Git identity (system-wide so all users inherit it) ────────────────────────
 RUN git config --system user.email "claude-sandbox@local" \
     && git config --system user.name "claude-sandbox"
@@ -67,10 +64,14 @@ RUN chmod +x /usr/local/bin/entrypoint.sh
 
 USER claude
 ENV HOME=/home/claude
-# Add native-install location to PATH so auto-updates take effect
-ENV PATH="/home/claude/.claude/local:${PATH}"
+# npm prefix owned by claude → auto-updates land somewhere writable
+ENV NPM_CONFIG_PREFIX=/home/claude/.npm-global
+ENV PATH="/home/claude/.claude/local:/home/claude/.npm-global/bin:${PATH}"
 
-# Switch to the native installer so auto-updates work without sudo
+# Install claude-code into user-owned prefix (writable for auto-updates)
+RUN npm install -g @anthropic-ai/claude-code
+
+# Install native binary (self-contained, faster startup, no npm dependency at runtime)
 RUN claude install
 
 # Install Playwright Chromium browser for the claude user
