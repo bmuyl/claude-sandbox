@@ -44,7 +44,8 @@ ENV PATH="/usr/local/cargo/bin:$PATH"
 
 # ── Git identity (system-wide so all users inherit it) ────────────────────────
 RUN git config --system user.email "claude-sandbox@local" \
-    && git config --system user.name "claude-sandbox"
+    && git config --system user.name "claude-sandbox" \
+    && git config --system credential.helper "gh auth git-credential"
 
 # ── Playwright system dependencies (needed before USER switch) ─────────────────
 RUN npx -y playwright install-deps chromium

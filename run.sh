@@ -55,9 +55,15 @@ if [ -d "$HOME/git_stuff" ]; then
   DOCKER_ARGS+=(-v "$HOME/git_stuff:/repos")
 fi
 
-# GitHub CLI credentials so `gh` works inside the container
-if [ -d "$HOME/.config/gh" ]; then
-  DOCKER_ARGS+=(-v "$HOME/.config/gh:/home/claude/.config/gh:ro")
+# GitHub token: extract from live gh CLI (macOS stores tokens in Keychain,
+# not in ~/.config/gh/hosts.yml, so mounting the dir alone isn't enough).
+# GH_TOKEN is read by both `gh` and `git` (via the credential helper we set).
+GH_TOKEN=$(gh auth token 2>/dev/null || true)
+if [ -n "${GH_TOKEN:-}" ]; then
+  DOCKER_ARGS+=(-e "GH_TOKEN=$GH_TOKEN")
+  echo "🐙  GitHub: token injected ($(gh api user --jq .login 2>/dev/null || echo "gh"))"
+else
+  echo "⚠️  GitHub: no token found (gh auth login may be needed)"
 fi
 
 # Persistent memory: Claude Code stores per-project memory here
