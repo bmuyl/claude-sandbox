@@ -81,20 +81,28 @@ if [ -f "$HOME/.claude.json" ]; then
   DOCKER_ARGS+=(-v "$HOME/.claude.json:/tmp/claude-auth/claude.json:ro")
 fi
 
-# ── Auth: OAuth tokens from macOS Keychain ───────────────────────────────────
-_CREDS=$(security find-generic-password -s "Claude Code-credentials" -w 2>/dev/null || true)
-OAUTH_TOKEN=$(echo "$_CREDS" | python3 -c "import sys,json; d=json.loads(sys.stdin.read()); print(d['claudeAiOauth']['accessToken'])" 2>/dev/null || true)
-REFRESH_TOKEN=$(echo "$_CREDS" | python3 -c "import sys,json; d=json.loads(sys.stdin.read()); print(d['claudeAiOauth']['refreshToken'])" 2>/dev/null || true)
+# ── Auth ─────────────────────────────────────────────────────────────────────
+# If ANTHROPIC_API_KEY is set in the env file (or shell), use it and skip
+# the Keychain — useful for switching to a second account without logging
+# out of the Mac account.
+_ENV_API_KEY=$(grep -E '^ANTHROPIC_API_KEY=' "$HOME/.config/claude-sandbox/env" 2>/dev/null | tail -1 | cut -d= -f2- || true)
 
-if [ -n "${OAUTH_TOKEN:-}" ]; then
-  DOCKER_ARGS+=(-e "CLAUDE_CODE_OAUTH_TOKEN=$OAUTH_TOKEN")
-  [ -n "${REFRESH_TOKEN:-}" ] && DOCKER_ARGS+=(-e "CLAUDE_CODE_OAUTH_REFRESH_TOKEN=$REFRESH_TOKEN")
-  echo "🔑  Auth: Mac Keychain token (Max subscription)"
-elif [ -n "${ANTHROPIC_API_KEY:-}" ]; then
-  DOCKER_ARGS+=(-e ANTHROPIC_API_KEY)
-  echo "🔑  Auth: ANTHROPIC_API_KEY"
+if [ -n "${_ENV_API_KEY:-}" ] || [ -n "${ANTHROPIC_API_KEY:-}" ]; then
+  # API key takes explicit priority — don't inject Keychain token on top of it
+  echo "🔑  Auth: ANTHROPIC_API_KEY (from env file)"
 else
-  echo "⚠️  No auth found. Make sure Claude Code is logged in on your Mac, or set ANTHROPIC_API_KEY."
+  # Default: extract OAuth token from macOS Keychain
+  _CREDS=$(security find-generic-password -s "Claude Code-credentials" -w 2>/dev/null || true)
+  OAUTH_TOKEN=$(echo "$_CREDS" | python3 -c "import sys,json; d=json.loads(sys.stdin.read()); print(d['claudeAiOauth']['accessToken'])" 2>/dev/null || true)
+  REFRESH_TOKEN=$(echo "$_CREDS" | python3 -c "import sys,json; d=json.loads(sys.stdin.read()); print(d['claudeAiOauth']['refreshToken'])" 2>/dev/null || true)
+
+  if [ -n "${OAUTH_TOKEN:-}" ]; then
+    DOCKER_ARGS+=(-e "CLAUDE_CODE_OAUTH_TOKEN=$OAUTH_TOKEN")
+    [ -n "${REFRESH_TOKEN:-}" ] && DOCKER_ARGS+=(-e "CLAUDE_CODE_OAUTH_REFRESH_TOKEN=$REFRESH_TOKEN")
+    echo "🔑  Auth: Mac Keychain token (Max subscription)"
+  else
+    echo "⚠️  No auth found. Log in on your Mac, or add ANTHROPIC_API_KEY to ~/.config/claude-sandbox/env"
+  fi
 fi
 
 # ── Secrets: load extra env vars from ~/.config/claude-sandbox/env ───────────
