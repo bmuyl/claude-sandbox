@@ -46,10 +46,9 @@ DOCKER_ARGS=(
   --rm
   -v "$PROJECT:/workspace"
   -w /workspace
+  --cpus "${SANDBOX_CPUS:-4}"
+  --memory "${SANDBOX_MEMORY:-8g}"
 )
-# Optional resource limits — only applied when env vars are set
-[ -n "${SANDBOX_CPUS:-}" ]   && DOCKER_ARGS+=(--cpus   "$SANDBOX_CPUS")
-[ -n "${SANDBOX_MEMORY:-}" ] && DOCKER_ARGS+=(--memory "$SANDBOX_MEMORY")
 
 # All projects at /repos (cross-project access for Claude)
 if [ -d "$HOME/git_stuff" ]; then
