@@ -5,8 +5,8 @@
 #   .\run.ps1 [-Project <path>] [-Prompt "<prompt>"] [-Timeout <mins>]
 #
 # Env overrides (set in shell or %USERPROFILE%\.config\claude-sandbox\env):
-#   SANDBOX_CPUS    CPU limit (default: 4)
-#   SANDBOX_MEMORY  Memory limit (default: 8g)
+#   SANDBOX_CPUS    CPU limit (default: 24)
+#   SANDBOX_MEMORY  Memory limit (default: 48g)
 #
 # Examples:
 #   .\run.ps1                                                   # interactive, cwd
@@ -47,8 +47,8 @@ if ($LASTEXITCODE -ne 0) {
 $Project = (Resolve-Path $Project).Path
 
 # ── Docker args ──────────────────────────────────────────────────────────────
-$cpus   = if ($env:SANDBOX_CPUS)   { $env:SANDBOX_CPUS }   else { "4" }
-$memory = if ($env:SANDBOX_MEMORY) { $env:SANDBOX_MEMORY } else { "8g" }
+$cpus   = if ($env:SANDBOX_CPUS)   { $env:SANDBOX_CPUS }   else { "24" }
+$memory = if ($env:SANDBOX_MEMORY) { $env:SANDBOX_MEMORY } else { "48g" }
 
 $dockerArgs = @(
   "--rm"

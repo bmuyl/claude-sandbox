@@ -46,8 +46,8 @@ DOCKER_ARGS=(
   --rm
   -v "$PROJECT:/workspace"
   -w /workspace
-  --cpus "${SANDBOX_CPUS:-4}"
-  --memory "${SANDBOX_MEMORY:-8g}"
+  --cpus "${SANDBOX_CPUS:-24}"
+  --memory "${SANDBOX_MEMORY:-48g}"
 )
 
 # All projects at /repos (cross-project access for Claude)
