@@ -61,7 +61,10 @@ RUN apt-get install -y sudo \
 
 # ── Entrypoint: copies host credentials with correct permissions ───────────────
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN chmod +x /usr/local/bin/entrypoint.sh
+# Strip CR in case the script was checked out with CRLF on a Windows host,
+# otherwise the kernel can't find the "/bin/bash\r" interpreter.
+RUN sed -i 's/\r$//' /usr/local/bin/entrypoint.sh \
+    && chmod +x /usr/local/bin/entrypoint.sh
 
 USER claude
 ENV HOME=/home/claude

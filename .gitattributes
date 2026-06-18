@@ -1,0 +1,8 @@
+# Shell scripts must stay LF — they run inside the Linux container.
+# Without this, a Windows checkout (autocrlf=true) gives them CRLF and the
+# container fails with "/bin/bash^M: bad interpreter".
+*.sh        text eol=lf
+entrypoint.sh text eol=lf
+
+# PowerShell launcher is Windows-side; CRLF is fine.
+*.ps1       text eol=crlf
