@@ -81,7 +81,7 @@ RUN mkdir -p /home/claude/.npm-global \
 RUN npx -y playwright install chromium
 
 # Global Claude Code settings: Playwright MCP for browser access
-RUN mkdir -p /home/claude/.claude
+RUN mkdir -p /home/claude/.claude/projects
 COPY --chown=claude:claude container-settings.json /home/claude/.claude/settings.json
 
 # Sandbox context doc: tells Claude what env it's in, what tools are available
