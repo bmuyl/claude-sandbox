@@ -66,6 +66,11 @@ COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN sed -i 's/\r$//' /usr/local/bin/entrypoint.sh \
     && chmod +x /usr/local/bin/entrypoint.sh
 
+# Pre-create dirs as root with correct ownership so named volumes inherit it.
+# Must run before USER claude — only root can chown to an arbitrary uid.
+RUN mkdir -p /home/claude/.claude/projects \
+    && chown -R claude:claude /home/claude/.claude
+
 USER claude
 ENV HOME=/home/claude
 ENV PATH="/home/claude/.npm-global/bin:${PATH}"
