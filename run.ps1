@@ -96,13 +96,17 @@ if (Test-Path $claudeJson) {
 }
 
 # ── Auth ─────────────────────────────────────────────────────────────────────
-# If ANTHROPIC_API_KEY is set (env file or shell), use it and skip the OAuth token.
-$envFile   = Join-Path $env:USERPROFILE ".config\claude-sandbox\env"
-$envApiKey = $null
-if (Test-Path $envFile) {
-  $match = Select-String -Path $envFile -Pattern '^\s*ANTHROPIC_API_KEY=' -ErrorAction SilentlyContinue | Select-Object -Last 1
-  if ($match) { $envApiKey = ($match.Line -replace '^\s*ANTHROPIC_API_KEY=', '').Trim() }
+# Priority: ANTHROPIC_API_KEY  >  CLAUDE_CODE_OAUTH_TOKEN (setup-token, long-lived)
+#           >  Windows credentials file (short-lived access token).
+$envFile = Join-Path $env:USERPROFILE ".config\claude-sandbox\env"
+function Get-EnvFileValue([string]$key) {
+  if (-not (Test-Path $envFile)) { return $null }
+  $m = Select-String -Path $envFile -Pattern "^\s*$key=" -ErrorAction SilentlyContinue | Select-Object -Last 1
+  if ($m) { return ($m.Line -replace "^\s*$key=", '').Trim() }
+  return $null
 }
+$envApiKey     = Get-EnvFileValue 'ANTHROPIC_API_KEY'
+$envOauthToken = Get-EnvFileValue 'CLAUDE_CODE_OAUTH_TOKEN'
 
 if ($envApiKey -or $env:ANTHROPIC_API_KEY) {
   # API key takes explicit priority — don't inject the OAuth token on top of it.
@@ -110,6 +114,13 @@ if ($envApiKey -or $env:ANTHROPIC_API_KEY) {
   # env-file keys are passed below in the secrets loop; pass a shell-only key explicitly.
   if ($env:ANTHROPIC_API_KEY -and -not $envApiKey) {
     $dockerArgs += @("-e", "ANTHROPIC_API_KEY=$env:ANTHROPIC_API_KEY")
+  }
+} elseif ($env:CLAUDE_CODE_OAUTH_TOKEN -or $envOauthToken) {
+  # Long-lived token from `claude setup-token` — ideal for headless sandbox runs.
+  Write-Host "🔑  Auth: CLAUDE_CODE_OAUTH_TOKEN (setup-token, long-lived)"
+  # env-file value is injected by the secrets loop below; pass a shell-only token explicitly.
+  if ($env:CLAUDE_CODE_OAUTH_TOKEN -and -not $envOauthToken) {
+    $dockerArgs += @("-e", "CLAUDE_CODE_OAUTH_TOKEN=$env:CLAUDE_CODE_OAUTH_TOKEN")
   }
 } else {
   # Default: read the OAuth token from the Windows credentials file.
